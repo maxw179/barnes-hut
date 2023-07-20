@@ -14,11 +14,11 @@ public class QuadTree
     return root.toString();
   }
 
-  public void add(ArrayList<Point> points)
+  public void add(ArrayList<Point> points, double xMin, double yMin)
   {
     for(Point point : points)
     {
-      add(point, root, 0.0, 0.0);
+      add(point, root, xMin, yMin);
     }
   }
 
@@ -69,7 +69,6 @@ public class QuadTree
           //from here, treat the occupied space as internal
           add(point, last.getChild(i), xOffsetTable[i], yOffsetTable[i]);
         }
-
       }
     }
   }

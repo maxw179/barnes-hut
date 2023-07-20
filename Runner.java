@@ -9,14 +9,14 @@ public class Runner
     if(args.length != 0)
     {
       //Initialize Simulation Parameters
-      int nBodies = 500000;
+      int nBodies = 1000;
       double xScalar = 0.7;
-      double mass = 0.01;
-      int timeSteps = 5000;
+      double mass = 5;
+      int timeSteps = 1000;
       double dt = 1.5;
       double theta = 1.5;
-      //Try to save the simulation to _pointHistory.csv
-      runSimulation(nBodies, xScalar, mass, timeSteps, dt, theta, "_" + args[0]);
+      //Try to save the simulation to _filename.csv
+      runSimulation(nBodies, xScalar, mass, timeSteps, dt, theta, "_" + args[0] + ".csv");
 
     }
     else
@@ -32,8 +32,8 @@ public class Runner
       //initialize FileWriter
       FileWriter writer = new FileWriter(fileName);
       //initialize points
-      ArrayList<Point> points = generateGalaxy(nBodies, 0.5, 0.5, xScalar, mass);
-      //ArrayList<Point> points = generateRandomSquare(nBodies, xScalar, mass);
+      //ArrayList<Point> points = generateGalaxy(nBodies, 0.5, 0.5, xScalar, mass);
+      ArrayList<Point> points = generateRandomSquare(nBodies, xScalar, mass);
       long startTime = System.nanoTime();
       long endTime = System.nanoTime();
       double elapsedSeconds = (endTime - startTime) * 1e-9;
@@ -83,13 +83,18 @@ public class Runner
     }
   }
 
-
-
   public static ArrayList<Point> oneStep(ArrayList<Point> points, double theta, double dt)
   {
+    //find out how large the quadtree should be
+    double[] minsMaxes = getMinsMaxes(points);
+    double xMin = minsMaxes[0];
+    double xMax = minsMaxes[1];
+    double yMin = minsMaxes[2];
+    double yMax = minsMaxes[3];
+
     //create a new quadtree and add the old points into it
-    QuadTree q = new QuadTree(1.0);
-    q.add(points);
+    QuadTree q = new QuadTree(max(xMax - xMin, yMax - yMin));
+    q.add(points, xMin, yMin);
     //get the points and forces from the quadtree
     ArrayList<Point> reformattedPoints = q.getPoints();
     ArrayList<double[]> forces = q.getForces(theta);
@@ -104,17 +109,56 @@ public class Runner
       Point newPoint = new Point(oldPoint);
       //update the new point
       newPoint.update(forces.get(i), dt);
-      //check to make sure the point is within the simulation bound
-      if(newPoint.getX()[0] > 0.0 && newPoint.getX()[0] < 1.0 && newPoint.getX()[1] > 0.0 && newPoint.getX()[1] < 1.0)
-      {
-        //if so, add it to the new list of points
-        newPoints.add(newPoint);
-      }
+      //add the new point into new points
+      newPoints.add(newPoint);
     }
     return newPoints;
   }
 
+  //return the max of two doubles
+  public static double max(double a, double b)
+  {
+    if(a > b)
+    {
+      return a;
+    }
+    return b;
+  }
+
+  //returns the xmin, xmax, ymin, and ymax of a list of points
+  public static double[] getMinsMaxes(ArrayList<Point> points)
+  {
+    double xMin = points.get(0).getX()[0];
+    double xMax = points.get(0).getX()[0];
+    double yMin = points.get(0).getX()[1];
+    double yMax = points.get(0).getX()[1];
+    //iterate over all the points to identify the x min, x max, y min, and y max
+    for(Point point : points)
+    {
+      if(point.getX()[0] < xMin)
+      {
+        xMin = point.getX()[0];
+      }
+      if(point.getX()[0] > xMax)
+      {
+        xMax = point.getX()[0];
+      }
+      if(point.getX()[1] < yMin)
+      {
+        yMin = point.getX()[1];
+      }
+      if(point.getX()[1] > yMax)
+      {
+        yMax = point.getX()[1];
+      }
+    }
+    double[] minsMaxes = {xMin, xMax, yMin, yMax};
+    return minsMaxes;
+  }
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
   public static ArrayList<Point> generateRandomSquare(int nBodies, double xScalar, double mass)
   {
     //create a new list of points
